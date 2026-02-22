@@ -1,0 +1,33 @@
+# Gradle / Android build outputs
+.gradle/
+build/
+**/build/
+
+# Local SDK path
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# Signing / secrets
+*.jks
+*.keystore
+*.p12
+*.key
+*.pem
+
+# Logs and temp
+*.log
+*.tmp
+*.lock
+
+# Generated reports
+**/reports/
+**/outputs/logs/
+
+# Local screenshots and captures
+*.png
+*.jpg
+*.jpeg
+

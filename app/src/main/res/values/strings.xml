@@ -1,0 +1,56 @@
+<resources>
+    <string name="app_name">SCRCPY Ethernet Remote</string>
+    <string name="ui_title">SCRCPY Android-to-Android Remote</string>
+    <string name="ui_subtitle">ADB over Ethernet session control</string>
+    <string name="mode_badge">LIVE CONTROL</string>
+    <string name="status_ready">Ready to connect</string>
+
+    <string name="header_subtitle">Control an Android device over Wi-Fi Debug with optimized performance and quality.</string>
+    <string name="controls_title">Session Controls</string>
+    <string name="controls_subtitle">Configure connection and stream tuning for live remote control.</string>
+    <string name="connection_title">Connection</string>
+    <string name="connection_subtitle">Enter target IP and ports, then start a remote session.</string>
+    <string name="tab_connection">Connection</string>
+    <string name="tab_stream">Stream Tuning</string>
+    <string name="stream_title">Display and Performance</string>
+    <string name="stream_subtitle">Adjust resolution mode, frame rate, and aspect behavior.</string>
+
+    <string name="hint_device_ip">Target device IP (Wi-Fi Debug)</string>
+    <string name="hint_device_port">Debug port (e.g. 7777)</string>
+    <string name="hint_pair_port">Pairing Port</string>
+    <string name="hint_pair_code">Pairing Code</string>
+    <string name="hint_local_forward_port">Local Forward Port</string>
+
+    <string name="chip_240p">240p</string>
+    <string name="chip_480p">480p</string>
+    <string name="chip_60fps">60 fps</string>
+    <string name="button_stretch">Stretch</string>
+    <string name="button_letterbox">Letterbox</string>
+    <string name="button_exit">Exit</string>
+    <string name="controls_toggle_desc">Show or hide control panel</string>
+
+    <string name="nav_back">Back</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_recent">Recents</string>
+
+    <string name="dialog_disconnect_title">Disconnect session?</string>
+    <string name="dialog_disconnect_message">Do you want to disconnect ADB and close the app?</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
+
+    <string name="button_connect">Connect</string>
+    <string name="button_disconnect">Disconnect</string>
+    <string name="button_fullscreen">Fullscreen</string>
+    <string name="button_exit_fullscreen">Exit fullscreen</string>
+    <string name="button_resolution">Resolution</string>
+    <string name="button_fps">FPS</string>
+    <string name="button_back">Back</string>
+    <string name="button_home">Home</string>
+    <string name="button_recent">Recents</string>
+
+    <string name="resolution_240p">240p</string>
+    <string name="resolution_360p">360p</string>
+    <string name="resolution_480p">480p</string>
+    <string name="resolution_720p">720p</string>
+    <string name="resolution_1080p">1080p</string>
+</resources>

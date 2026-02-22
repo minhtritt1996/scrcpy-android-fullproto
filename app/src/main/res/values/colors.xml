@@ -1,0 +1,22 @@
+<resources>
+    <color name="surface_card">#FFFFFFFF</color>
+    <color name="surface_card_light">#FFF2F7FF</color>
+    <color name="accent_blue">#FF5AB5FF</color>
+    <color name="accent_blue_dark">#FF2C91EB</color>
+    <color name="text_primary">#FF10213B</color>
+    <color name="text_muted">#FF5D718D</color>
+    <color name="status_overlay">#FFE7F3FF</color>
+    <color name="nav_button">#FFF0F5FF</color>
+    <color name="chip_bg">#FFE9F2FF</color>
+    <color name="chip_text">#FF10213B</color>
+    <color name="bg_dark">#FFF5F9FF</color>
+    <color name="bg_mid">#FFEFF6FF</color>
+    <color name="bg_end">#FFEAF2FF</color>
+    <color name="fab_tint">#FFF0F6FF</color>
+    <color name="pill_bg">#EAF5FBFF</color>
+    <color name="status_panel_bg">#F5FAFFFF</color>
+    <color name="control_sheet_bg">#FCFFFFFF</color>
+    <color name="sheet_stroke">#FFBED1EC</color>
+    <color name="field_fill">#FFF3F8FF</color>
+    <color name="field_stroke">#FFC3D5EE</color>
+</resources>
