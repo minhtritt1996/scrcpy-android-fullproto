@@ -272,3 +272,16 @@ git push -u origin main
 - M2:
   - hardened security model
   - optional relay/web gateway mode
+
+## 14. Support / Donate
+
+If you want to support development:
+
+- Donation page: `https://tritm.me/`
+- BTC (Bitcoin): `1677xrmuGdXDX3WcQQsX2GvW3WMKFURmKu`
+- ERC20 (ETH/USDT/USDC): `0xc604a10270d5e37fa36676f2dec54383399b7e51`
+
+Network notes:
+
+- Send only BTC to the BTC address.
+- Send ERC20 tokens only on Ethereum network to the ERC20 address.
