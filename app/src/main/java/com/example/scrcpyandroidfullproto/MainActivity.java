@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout streamPanel;
 
     private FloatingActionButton exitButton;
-    private FloatingActionButton toggleControlsButton;
+    private ImageButton toggleControlsButton;
     private View controlOverlay;
     private LinearLayout navPill;
     private ScrcpyVideoClient videoClient;
@@ -184,46 +184,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupMovableControls() {
         final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
 
-        toggleControlsButton.setOnTouchListener(new View.OnTouchListener() {
-            float downRawX;
-            float downRawY;
-            float startX;
-            float startY;
-            boolean dragging;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        downRawX = event.getRawX();
-                        downRawY = event.getRawY();
-                        startX = v.getX();
-                        startY = v.getY();
-                        dragging = false;
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        float dx = event.getRawX() - downRawX;
-                        float dy = event.getRawY() - downRawY;
-                        if (!dragging && Math.hypot(dx, dy) > touchSlop) {
-                            dragging = true;
-                        }
-                        if (dragging) {
-                            setClampedPosition(v, startX + dx, startY + dy);
-                        }
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        if (!dragging) {
-                            v.performClick();
-                        }
-                        return true;
-                    case MotionEvent.ACTION_CANCEL:
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-        });
-
+        setupDraggableNavButton(toggleControlsButton, touchSlop);
         setupDraggableNavButton(navBackButton, touchSlop);
         setupDraggableNavButton(navHomeButton, touchSlop);
         setupDraggableNavButton(navRecentButton, touchSlop);
