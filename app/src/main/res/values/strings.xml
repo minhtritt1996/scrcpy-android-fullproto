@@ -44,6 +44,8 @@
     <string name="button_exit_fullscreen">Exit fullscreen</string>
     <string name="button_resolution">Resolution</string>
     <string name="button_fps">FPS</string>
+    <string name="button_clipboard_push">Send B -&gt; C</string>
+    <string name="button_clipboard_pull">Pull C -&gt; B</string>
     <string name="button_back">Back</string>
     <string name="button_home">Home</string>
     <string name="button_recent">Recents</string>

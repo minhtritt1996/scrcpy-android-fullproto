@@ -32,6 +32,9 @@ Current app version in code: `0.1.0-m1` (`app/build.gradle`).
   - max resolution (`Auto/240p/360p/480p/720p/1080p`)
   - max FPS (`Auto/30/45/60`)
   - stretch vs letterbox
+- Clipboard bridge (manual):
+  - `Send B -> C` pushes controller clipboard to target device
+  - `Pull C -> B` requests target clipboard back to controller
 - Session UI behavior:
   - app start: show Session Controls
   - connected: hide Session Controls, show floating `...` and nav pill

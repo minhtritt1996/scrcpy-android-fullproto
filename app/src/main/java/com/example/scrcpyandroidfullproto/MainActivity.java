@@ -1,6 +1,8 @@
 package com.example.scrcpyandroidfullproto;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -36,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private View statusPanel;
     private Button resolutionButton;
     private Button fpsButton;
+    private Button clipboardPushButton;
+    private Button clipboardPullButton;
     private Button disconnectStreamButton;
     private ImageButton navBackButton;
     private ImageButton navHomeButton;
@@ -90,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
         videoSurface = findViewById(R.id.videoSurface);
         resolutionButton = findViewById(R.id.resolutionButton);
         fpsButton = findViewById(R.id.fpsButton);
+        clipboardPushButton = findViewById(R.id.clipboardPushButton);
+        clipboardPullButton = findViewById(R.id.clipboardPullButton);
         disconnectStreamButton = findViewById(R.id.disconnectStreamButton);
         navBackButton = findViewById(R.id.navBackButton);
         navHomeButton = findViewById(R.id.navHomeButton);
@@ -164,12 +170,22 @@ public class MainActivity extends AppCompatActivity {
             public void onError(String text, Throwable throwable) {
                 runOnUiThread(() -> statusText.setText(text));
             }
+
+            @Override
+            public void onClipboardText(String text) {
+                runOnUiThread(() -> {
+                    setHostClipboardText(text);
+                    statusText.setText("Clipboard received C -> B");
+                });
+            }
         });
 
         connectButton.setOnClickListener(v -> connectAndStart());
         disconnectButton.setOnClickListener(v -> disconnectSession());
         resolutionButton.setOnClickListener(v -> showResolutionDialog());
         fpsButton.setOnClickListener(v -> showFpsDialog());
+        clipboardPushButton.setOnClickListener(v -> pushHostClipboardToDevice());
+        clipboardPullButton.setOnClickListener(v -> pullDeviceClipboardToHost());
         disconnectStreamButton.setOnClickListener(v -> disconnectSession());
         navBackButton.setOnClickListener(v -> sendKeyEvent(KeyEvent.KEYCODE_BACK));
         navHomeButton.setOnClickListener(v -> sendKeyEvent(KeyEvent.KEYCODE_HOME));
@@ -639,6 +655,53 @@ public class MainActivity extends AppCompatActivity {
         stretchToFit = !stretchToFit;
         videoSurface.setStretchToFill(stretchToFit);
         updateStretchButtonText();
+    }
+
+    private void pushHostClipboardToDevice() {
+        ScrcpyControlClient control = controlClient;
+        if (control == null || !control.isReady()) {
+            statusText.setText("Control channel is not ready");
+            return;
+        }
+        String text = getHostClipboardText();
+        if (text == null || text.trim().isEmpty()) {
+            statusText.setText("Host clipboard is empty");
+            return;
+        }
+        control.setDeviceClipboard(text, false);
+        statusText.setText("Clipboard sent B -> C");
+    }
+
+    private void pullDeviceClipboardToHost() {
+        ScrcpyControlClient control = controlClient;
+        if (control == null || !control.isReady()) {
+            statusText.setText("Control channel is not ready");
+            return;
+        }
+        control.requestDeviceClipboard();
+        statusText.setText("Requesting clipboard C -> B...");
+    }
+
+    private String getHostClipboardText() {
+        ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (manager == null || !manager.hasPrimaryClip()) {
+            return null;
+        }
+        ClipData clip = manager.getPrimaryClip();
+        if (clip == null || clip.getItemCount() == 0) {
+            return null;
+        }
+        CharSequence text = clip.getItemAt(0).coerceToText(this);
+        return text == null ? null : text.toString();
+    }
+
+    private void setHostClipboardText(String text) {
+        ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (manager == null) {
+            return;
+        }
+        String safeText = text == null ? "" : text;
+        manager.setPrimaryClip(ClipData.newPlainText("scrcpy-remote", safeText));
     }
 
     private void updateStretchButtonText() {
