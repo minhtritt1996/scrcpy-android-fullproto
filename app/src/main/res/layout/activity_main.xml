@@ -358,37 +358,16 @@
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <LinearLayout
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/autoClipboardSwitch"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:orientation="horizontal"
-                        android:weightSum="2">
-
-                        <Button
-                            android:id="@+id/clipboardPushButton"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="6dp"
-                            android:background="@drawable/button_secondary"
-                            android:text="@string/button_clipboard_push"
-                            android:textAllCaps="false"
-                            android:textColor="@color/text_primary"
-                            android:textSize="12sp" />
-
-                        <Button
-                            android:id="@+id/clipboardPullButton"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/button_secondary"
-                            android:text="@string/button_clipboard_pull"
-                            android:textAllCaps="false"
-                            android:textColor="@color/text_primary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
+                        android:checked="true"
+                        android:text="@string/toggle_auto_clipboard"
+                        android:textColor="@color/text_primary"
+                        app:thumbTint="@color/accent_blue"
+                        app:trackTint="@color/chip_bg" />
 
                     <Button
                         android:id="@+id/disconnectStreamButton"

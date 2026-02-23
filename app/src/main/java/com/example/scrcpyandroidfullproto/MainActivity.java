@@ -4,6 +4,9 @@ import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.scrcpy.adb.NativeAdbBridge;
 import com.example.scrcpyandroidfullproto.view.AspectRatioSurfaceView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.tabs.TabLayout;
 
 import java.io.File;
@@ -38,8 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private View statusPanel;
     private Button resolutionButton;
     private Button fpsButton;
-    private Button clipboardPushButton;
-    private Button clipboardPullButton;
+    private SwitchMaterial autoClipboardSwitch;
     private Button disconnectStreamButton;
     private ImageButton navBackButton;
     private ImageButton navHomeButton;
@@ -76,6 +79,18 @@ public class MainActivity extends AppCompatActivity {
     private final String[] fpsLabels = {"Auto", "30 fps", "45 fps", "60 fps"};
     private boolean controlsVisible = false;
     private boolean sessionConnected = false;
+    private ClipboardManager clipboardManager;
+    private boolean autoClipboardSyncEnabled = true;
+    private boolean applyingRemoteClipboard;
+    private long applyingRemoteClipboardUntilMs;
+    private long lastClipboardSendMs;
+    private String lastClipboardSentToDevice = "";
+    private String lastClipboardReceivedFromDevice = "";
+    private static final long REMOTE_CLIPBOARD_GUARD_MS = 800;
+    private static final long CLIPBOARD_SEND_DEBOUNCE_MS = 200;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable clearRemoteClipboardGuard = () -> applyingRemoteClipboard = false;
+    private final ClipboardManager.OnPrimaryClipChangedListener hostClipboardListener = this::onLocalClipboardChanged;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,8 +109,7 @@ public class MainActivity extends AppCompatActivity {
         videoSurface = findViewById(R.id.videoSurface);
         resolutionButton = findViewById(R.id.resolutionButton);
         fpsButton = findViewById(R.id.fpsButton);
-        clipboardPushButton = findViewById(R.id.clipboardPushButton);
-        clipboardPullButton = findViewById(R.id.clipboardPullButton);
+        autoClipboardSwitch = findViewById(R.id.autoClipboardSwitch);
         disconnectStreamButton = findViewById(R.id.disconnectStreamButton);
         navBackButton = findViewById(R.id.navBackButton);
         navHomeButton = findViewById(R.id.navHomeButton);
@@ -109,6 +123,20 @@ public class MainActivity extends AppCompatActivity {
         controlOverlay = findViewById(R.id.controlOverlay);
         navPill = findViewById(R.id.navPill);
         videoSurface.setOnTouchListener(this::handleTouch);
+        clipboardManager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (clipboardManager != null) {
+            clipboardManager.addPrimaryClipChangedListener(hostClipboardListener);
+        }
+        autoClipboardSyncEnabled = autoClipboardSwitch.isChecked();
+        autoClipboardSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            autoClipboardSyncEnabled = isChecked;
+            if (isChecked) {
+                requestRemoteClipboardSnapshot();
+                statusText.setText("Auto clipboard sync enabled");
+            } else {
+                statusText.setText("Auto clipboard sync disabled");
+            }
+        });
 
         setupTabs();
         updatePanelsForSession(false);
@@ -161,6 +189,9 @@ public class MainActivity extends AppCompatActivity {
         controlClient = new ScrcpyControlClient(new ScrcpyControlClient.Listener() {
             @Override
             public void onStatus(String text) {
+                if ("Control channel connected".equals(text) && autoClipboardSyncEnabled) {
+                    requestRemoteClipboardSnapshot();
+                }
                 if (!sessionConnected) {
                     runOnUiThread(() -> statusText.setText(text));
                 }
@@ -174,8 +205,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClipboardText(String text) {
                 runOnUiThread(() -> {
-                    setHostClipboardText(text);
-                    statusText.setText("Clipboard received C -> B");
+                    applyRemoteClipboardText(text);
                 });
             }
         });
@@ -184,8 +214,6 @@ public class MainActivity extends AppCompatActivity {
         disconnectButton.setOnClickListener(v -> disconnectSession());
         resolutionButton.setOnClickListener(v -> showResolutionDialog());
         fpsButton.setOnClickListener(v -> showFpsDialog());
-        clipboardPushButton.setOnClickListener(v -> pushHostClipboardToDevice());
-        clipboardPullButton.setOnClickListener(v -> pullDeviceClipboardToHost());
         disconnectStreamButton.setOnClickListener(v -> disconnectSession());
         navBackButton.setOnClickListener(v -> sendKeyEvent(KeyEvent.KEYCODE_BACK));
         navHomeButton.setOnClickListener(v -> sendKeyEvent(KeyEvent.KEYCODE_HOME));
@@ -335,6 +363,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (clipboardManager != null) {
+            clipboardManager.removePrimaryClipChangedListener(hostClipboardListener);
+        }
+        mainHandler.removeCallbacks(clearRemoteClipboardGuard);
         videoClient.stop();
         controlClient.stop();
     }
@@ -657,29 +689,62 @@ public class MainActivity extends AppCompatActivity {
         updateStretchButtonText();
     }
 
-    private void pushHostClipboardToDevice() {
-        ScrcpyControlClient control = controlClient;
-        if (control == null || !control.isReady()) {
-            statusText.setText("Control channel is not ready");
+    private void requestRemoteClipboardSnapshot() {
+        if (!autoClipboardSyncEnabled) {
             return;
         }
-        String text = getHostClipboardText();
-        if (text == null || text.trim().isEmpty()) {
-            statusText.setText("Host clipboard is empty");
-            return;
-        }
-        control.setDeviceClipboard(text, false);
-        statusText.setText("Clipboard sent B -> C");
-    }
-
-    private void pullDeviceClipboardToHost() {
         ScrcpyControlClient control = controlClient;
         if (control == null || !control.isReady()) {
-            statusText.setText("Control channel is not ready");
             return;
         }
         control.requestDeviceClipboard();
-        statusText.setText("Requesting clipboard C -> B...");
+    }
+
+    private void onLocalClipboardChanged() {
+        if (!autoClipboardSyncEnabled || !sessionConnected) {
+            return;
+        }
+        ScrcpyControlClient control = controlClient;
+        if (control == null || !control.isReady()) {
+            return;
+        }
+        long now = SystemClock.uptimeMillis();
+        if (applyingRemoteClipboard && now < applyingRemoteClipboardUntilMs) {
+            return;
+        }
+        if (now - lastClipboardSendMs < CLIPBOARD_SEND_DEBOUNCE_MS) {
+            return;
+        }
+        String text = getHostClipboardText();
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        if (text.equals(lastClipboardSentToDevice)) {
+            return;
+        }
+        if (text.equals(lastClipboardReceivedFromDevice) && now - lastClipboardSendMs < 1500) {
+            return;
+        }
+        control.setDeviceClipboard(text, false);
+        lastClipboardSentToDevice = text;
+        lastClipboardSendMs = now;
+    }
+
+    private void applyRemoteClipboardText(String text) {
+        if (!autoClipboardSyncEnabled) {
+            return;
+        }
+        String remote = text == null ? "" : text;
+        String current = getHostClipboardText();
+        lastClipboardReceivedFromDevice = remote;
+        if (remote.equals(current)) {
+            return;
+        }
+        applyingRemoteClipboard = true;
+        applyingRemoteClipboardUntilMs = SystemClock.uptimeMillis() + REMOTE_CLIPBOARD_GUARD_MS;
+        mainHandler.removeCallbacks(clearRemoteClipboardGuard);
+        setHostClipboardText(remote);
+        mainHandler.postDelayed(clearRemoteClipboardGuard, REMOTE_CLIPBOARD_GUARD_MS);
     }
 
     private String getHostClipboardText() {
