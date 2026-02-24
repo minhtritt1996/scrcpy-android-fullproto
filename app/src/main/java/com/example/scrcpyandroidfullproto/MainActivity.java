@@ -86,10 +86,18 @@ public class MainActivity extends AppCompatActivity {
     private long lastClipboardSendMs;
     private String lastClipboardSentToDevice = "";
     private String lastClipboardReceivedFromDevice = "";
+    private boolean inBackgroundGrace;
+    private static final long BACKGROUND_SESSION_GRACE_MS = 5 * 60 * 1000L;
     private static final long REMOTE_CLIPBOARD_GUARD_MS = 800;
     private static final long CLIPBOARD_SEND_DEBOUNCE_MS = 200;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Runnable clearRemoteClipboardGuard = () -> applyingRemoteClipboard = false;
+    private final Runnable backgroundSessionTimeout = () -> {
+        if (inBackgroundGrace && sessionConnected) {
+            statusText.setText("Session timed out after 5 minutes in background");
+            disconnectSession();
+        }
+    };
     private final ClipboardManager.OnPrimaryClipChangedListener hostClipboardListener = this::onLocalClipboardChanged;
 
     @Override
@@ -349,6 +357,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void disconnectSession() {
+        clearBackgroundSessionGrace();
         videoClient.stop();
         controlClient.stop();
         currentLocalForwardPort = 0;
@@ -367,6 +376,7 @@ public class MainActivity extends AppCompatActivity {
             clipboardManager.removePrimaryClipChangedListener(hostClipboardListener);
         }
         mainHandler.removeCallbacks(clearRemoteClipboardGuard);
+        mainHandler.removeCallbacks(backgroundSessionTimeout);
         videoClient.stop();
         controlClient.stop();
     }
@@ -473,6 +483,13 @@ public class MainActivity extends AppCompatActivity {
             String message = (status == null || status.trim().isEmpty())
                     ? "Stream failed"
                     : status;
+            if (inBackgroundGrace && sessionConnected) {
+                statusText.setText("Background mode: " + message);
+                streamReady = false;
+                videoClient.stop();
+                controlClient.stop();
+                return;
+            }
             statusText.setText(message);
             videoClient.stop();
             controlClient.stop();
@@ -791,6 +808,47 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        boolean wasInBackgroundGrace = inBackgroundGrace;
+        clearBackgroundSessionGrace();
+        if (wasInBackgroundGrace && sessionConnected) {
+            resumeSessionIfNeeded();
+        }
         hideSystemUI();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (sessionConnected) {
+            armBackgroundSessionGrace();
+        }
+    }
+
+    private void armBackgroundSessionGrace() {
+        inBackgroundGrace = true;
+        mainHandler.removeCallbacks(backgroundSessionTimeout);
+        mainHandler.postDelayed(backgroundSessionTimeout, BACKGROUND_SESSION_GRACE_MS);
+    }
+
+    private void clearBackgroundSessionGrace() {
+        inBackgroundGrace = false;
+        mainHandler.removeCallbacks(backgroundSessionTimeout);
+    }
+
+    private void resumeSessionIfNeeded() {
+        if (!sessionConnected || currentLocalForwardPort <= 0) {
+            return;
+        }
+        statusText.setText("Resuming session...");
+        streamReady = false;
+        videoClient.stop();
+        controlClient.stop();
+        videoClient.start("127.0.0.1", currentLocalForwardPort, videoSurface.getHolder().getSurface());
+        videoSurface.setStretchToFill(stretchToFit);
+        updatePanelsForSession(true);
+        setControlsVisible(false);
+        if (autoClipboardSyncEnabled) {
+            requestRemoteClipboardSnapshot();
+        }
     }
 }
